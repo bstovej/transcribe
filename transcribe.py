@@ -99,10 +99,9 @@ def run_pipeline(input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, model_name=WHISPER_
                 print("Transcription is empty, skipping summary.")
 
             # Step 3: Archive
-            print("Archiving files...")
+            print("Archiving original audio/video file...")
             shutil.move(str(file_path), str(archive_dir / file_path.name))
-            shutil.move(str(temp_txt_path), str(archive_dir / temp_txt_path.name))
-            print(f"Moved original and transcription to {archive_dir}")
+            print(f"Moved original file to {archive_dir}")
 
         except Exception as e:
             print(f"Error processing {file_path.name}: {e}")

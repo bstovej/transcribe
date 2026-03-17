@@ -49,14 +49,12 @@ def transcribe_files(input_dir=INPUT_DIR, model_name=WHISPER_MODEL):
             
             print(f"Transcription saved to {output_text_file.name}")
 
-            # Step 3: Move both audio and text file to the archive folder
+            # Step 3: Move only the original audio/video file to the archive folder
             dest_audio = archive_dir / file_path.name
-            dest_text = archive_dir / output_text_file.name
             
             shutil.move(str(file_path), str(dest_audio))
-            shutil.move(str(output_text_file), str(dest_text))
             
-            print(f"Moved files to {archive_dir}")
+            print(f"Moved original file to {archive_dir}")
 
         except Exception as e:
             print(f"An error occurred processing {file_path.name}: {e}")
