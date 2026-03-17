@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# transcribe
-Transcribe and summmarize audio and video files. 
-=======
 # Transcribe and Summarize
 
 This project provides a set of Python scripts for batch transcribing audio files using OpenAI's Whisper model and summarizing the transcriptions using a local LLM via Ollama. 
