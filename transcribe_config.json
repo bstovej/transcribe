@@ -1,0 +1,7 @@
+{
+  "ollama_url": "http://host.docker.internal:11434/api/chat",
+  "model_name": "llama3.2:latest",
+  "whisper_model": "base",
+  "input_dir": "./input",
+  "output_dir": "./output"
+}
