@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+transcribe.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Data
+# Ignore everything in these folders but keep the folders themselves
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+archives/
+journal/*
+
+# Environment / Config
+.env
