@@ -14,8 +14,8 @@ def load_config():
     if not os.path.exists(config_path):
         print(f"Warning: Config file not found at {config_path}. Using default internal values.")
         return {
-            "ollama_url": "http://localhost:11434/api/chat",
-            "model_name": "llama3.2:latest",
+            "llm_url": "http://localhost:8080/v1/chat/completions",
+            "model_name": "gpt-3.5-turbo",
             "whisper_model": "base",
             "input_dir": "./input",
             "output_dir": "./output"
@@ -27,8 +27,8 @@ def load_config():
     except Exception as e:
         print(f"Error loading config file: {e}. Using default internal values.")
         return {
-            "ollama_url": "http://localhost:11434/api/chat",
-            "model_name": "llama3.2:latest",
+            "llm_url": "http://localhost:8080/v1/chat/completions",
+            "model_name": "gpt-3.5-turbo",
             "whisper_model": "base",
             "input_dir": "./input",
             "output_dir": "./output"

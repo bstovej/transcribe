@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Transcription & Summarization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Configuration</h2>
+        <div class="config-group">
+            <label for="llm_url">LLM URL (OpenAI-compatible)</label>
+            <input type="text" id="llm_url">
+        </div>
+        <div class="config-group">
+            <label for="model_name">LLM Model Name</label>
+            <input type="text" id="model_name">
+        </div>
+        <div class="config-group">
+            <label for="whisper_model">Whisper Model</label>
+            <select id="whisper_model">
+                <option value="tiny">tiny</option>
+                <option value="base">base</option>
+                <option value="small">small</option>
+                <option value="medium">medium</option>
+                <option value="large">large</option>
+            </select>
+        </div>
+        <hr style="border: 0.5px solid #464855; width: 100%;">
+        <div class="config-group">
+            <label for="input_dir">Input Directory</label>
+            <input type="text" id="input_dir">
+        </div>
+        <div class="config-group">
+            <label for="output_dir">Output Directory</label>
+            <input type="text" id="output_dir">
+        </div>
+        <button id="save-config" class="primary">Save Configuration</button>
+    </div>
+
+    <div id="main-content">
+        <h1>🎙️ Audio Processing Dashboard</h1>
+        
+        <h3>Select Task</h3>
+        <div class="task-grid">
+            <div class="task-card">
+                <button onclick="runTask('pipeline')">🚀 Run Full Pipeline</button>
+            </div>
+            <div class="task-card">
+                <button onclick="runTask('transcribe')">✍️ Transcribe Only</button>
+            </div>
+            <div class="task-card">
+                <button onclick="runTask('summarize')">📝 Summarize Only</button>
+            </div>
+            <div class="task-card">
+                <button onclick="runTask('enhance')">✨ Enhance Text</button>
+            </div>
+        </div>
+
+        <div id="status-area" style="display: none;">
+            <hr style="border: 0.5px solid #464855; margin: 20px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="current-task-label">Running task...</h3>
+                <span id="job-status-badge" class="status-badge">pending</span>
+            </div>
+            <div id="log-container"></div>
+        </div>
+
+        <hr style="border: 0.5px solid #464855; margin: 40px 0;">
+        <h3>📁 Output Files</h3>
+        <ul id="file-list">
+            <!-- Files will be loaded here -->
+        </ul>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

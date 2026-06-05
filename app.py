@@ -1,96 +1,130 @@
-import streamlit as st
+from flask import Flask, render_template, request, jsonify, Response, send_from_directory
+from flask_cors import CORS
 import os
-import transcribe
-import transcribe_only
-import summarize_text
-import enhance_text
+import json
+import time
+from pathlib import Path
 from config_loader import config
-from contextlib import redirect_stdout
-import io
+from job_manager import job_manager, TYPE_PIPELINE, TYPE_TRANSCRIBE, TYPE_SUMMARIZE, TYPE_ENHANCE, TYPE_SINGLE_API
 
-st.set_page_config(page_title="Audio Transcription & Summarization", layout="wide")
+app = Flask(__name__)
+CORS(app)
 
-st.title("🎙️ Audio Processing Dashboard")
+UPLOAD_FOLDER = config.get("input_dir", "./input")
+OUTPUT_FOLDER = config.get("output_dir", "./output")
 
-# Sidebar configuration
-st.sidebar.header("Configuration")
-ollama_url = st.sidebar.text_input("Ollama URL", config.get("ollama_url", "http://host.docker.internal:11434/api/chat"))
-model_name = st.sidebar.text_input("LLM Model Name", config.get("model_name", "llama3.2:latest"))
-whisper_model = st.sidebar.selectbox("Whisper Model", ["tiny", "base", "small", "medium", "large"], 
-                                     index=["tiny", "base", "small", "medium", "large"].index(config.get("whisper_model", "base")))
+# Ensure directories exist
+Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
+Path(OUTPUT_FOLDER).mkdir(exist_ok=True)
 
-st.sidebar.divider()
-input_dir = st.sidebar.text_input("Input Directory", config.get("input_dir", "./input"))
-output_dir = st.sidebar.text_input("Output Directory", config.get("output_dir", "./output"))
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-# Update script configuration dynamically
-transcribe.OLLAMA_URL = ollama_url
-transcribe.MODEL_NAME = model_name
-transcribe.WHISPER_MODEL = whisper_model
-transcribe.INPUT_DIR = input_dir
-transcribe.OUTPUT_DIR = output_dir
-
-transcribe_only.WHISPER_MODEL = whisper_model
-transcribe_only.INPUT_DIR = input_dir
-
-summarize_text.OLLAMA_URL = ollama_url
-summarize_text.MODEL_NAME = model_name
-summarize_text.INPUT_DIR = input_dir
-summarize_text.OUTPUT_DIR = output_dir
-
-enhance_text.OLLAMA_URL = ollama_url
-enhance_text.MODEL_NAME = model_name
-enhance_text.INPUT_DIR = input_dir
-enhance_text.OUTPUT_DIR = output_dir
-
-# Main UI
-st.subheader("Select Task")
-col1, col2, col3, col4 = st.columns(4)
-
-task = None
-if col1.button("🚀 Run Full Pipeline", use_container_width=True):
-    task = "pipeline"
-if col2.button("✍️ Transcribe Only", use_container_width=True):
-    task = "transcribe"
-if col3.button("📝 Summarize Only", use_container_width=True):
-    task = "summarize"
-if col4.button("✨ Enhance Text", use_container_width=True):
-    task = "enhance"
-
-if task:
-    st.divider()
-    st.info(f"Running task: **{task.upper()}**...")
+@app.route('/api/config', methods=['GET', 'POST'])
+def handle_config():
+    config_path = os.getenv("TRANSCRIBE_CONFIG_PATH", "transcribe_config.json")
     
-    output_buffer = io.StringIO()
+    if request.method == 'POST':
+        new_config = request.json
+        with open(config_path, 'w') as f:
+            json.dump(new_config, f, indent=2)
+        # Update current in-memory config
+        config.update(new_config)
+        return jsonify({"status": "success", "config": config})
     
-    try:
-        with redirect_stdout(output_buffer):
-            if task == "pipeline":
-                transcribe.run_pipeline(input_dir, output_dir, whisper_model)
-            elif task == "transcribe":
-                transcribe_only.transcribe_files(input_dir, whisper_model)
-            elif task == "summarize":
-                summarize_text.process_transcriptions(input_dir, output_dir)
-            elif task == "enhance":
-                enhance_text.process_transcriptions(input_dir, output_dir)
+    return jsonify(config)
+
+@app.route('/api/files', methods=['GET'])
+def list_files():
+    output_path = Path(config.get("output_dir", "./output"))
+    if not output_path.exists():
+        return jsonify([])
+    
+    files = [f.name for f in sorted(output_path.glob("*.md"))]
+    return jsonify(files)
+
+@app.route('/api/run_task', methods=['POST'])
+def run_task():
+    data = request.json
+    task_name = data.get("task")
+    
+    task_map = {
+        "pipeline": TYPE_PIPELINE,
+        "transcribe": TYPE_TRANSCRIBE,
+        "summarize": TYPE_SUMMARIZE,
+        "enhance": TYPE_ENHANCE
+    }
+    
+    if task_name not in task_map:
+        return jsonify({"error": "Invalid task"}), 400
+    
+    job_id = job_manager.add_job(task_map[task_name], {
+        "input_dir": config.get("input_dir"),
+        "output_dir": config.get("output_dir"),
+        "whisper_model": config.get("whisper_model")
+    })
+    
+    return jsonify({"job_id": job_id})
+
+@app.route('/api/stream_log/<job_id>')
+def stream_log(job_id):
+    def generate():
+        job = job_manager.get_job(job_id)
+        if not job:
+            yield "data: {\"error\": \"Job not found\"}\n\n"
+            return
+
+        last_idx = 0
+        while job["status"] in ["pending", "processing"]:
+            if last_idx < len(job["logs"]):
+                for i in range(last_idx, len(job["logs"])):
+                    yield f"data: {json.dumps({'log': job['logs'][i], 'status': job['status']})}\n\n"
+                last_idx = len(job["logs"])
+            time.sleep(0.5)
         
-        st.success("✅ Task completed successfully!")
-    except Exception as e:
-        st.error(f"❌ Error: {str(e)}")
-    
-    with st.expander("View Logs", expanded=True):
-        st.text(output_buffer.getvalue())
+        # Final status and logs
+        if last_idx < len(job["logs"]):
+            for i in range(last_idx, len(job["logs"])):
+                yield f"data: {json.dumps({'log': job['logs'][i], 'status': job['status']})}\n\n"
+        
+        yield f"data: {json.dumps({'status': job['status'], 'done': True})}\n\n"
 
-# File browser simulation
-st.divider()
-st.subheader("📁 Output Files")
-if os.path.exists(output_dir):
-    files = os.listdir(output_dir)
-    if files:
-        for f in sorted(files):
-            if f.endswith(".md"):
-                st.markdown(f"- **{f}**")
-    else:
-        st.write("No output files found.")
-else:
-    st.write(f"Output directory '{output_dir}' does not exist yet.")
+    return Response(generate(), mimetype='text/event-stream')
+
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    filename = file.filename
+    file_path = os.path.join(config.get("input_dir", "./input"), filename)
+    file.save(file_path)
+    
+    job_id = job_manager.add_job(TYPE_SINGLE_API, {
+        "file_path": file_path,
+        "output_dir": config.get("output_dir"),
+        "whisper_model": config.get("whisper_model"),
+        "summarize": True
+    })
+    
+    return jsonify({"job_id": job_id, "status": "queued"})
+
+@app.route('/api/status/<job_id>', methods=['GET'])
+def get_status(job_id):
+    job = job_manager.get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    
+    return jsonify({
+        "status": job["status"],
+        "logs": job["logs"],
+        "result": job["result"]
+    })
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8501, debug=True)

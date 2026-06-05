@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Environment variables with default values
-ENV OLLAMA_URL=http://host.docker.internal:11434/api/chat
+ENV LLM_URL=http://host.docker.internal:8080/v1/chat/completions
 ENV MODEL_NAME=llama3.2:latest
 ENV WHISPER_MODEL=base
 

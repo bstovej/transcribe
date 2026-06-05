@@ -6,15 +6,15 @@ from pathlib import Path
 from config_loader import config
 
 # Configuration from loaded config file
-OLLAMA_URL = config.get("ollama_url", "http://localhost:11434/api/chat")
-MODEL_NAME = config.get("model_name", "llama3.2:latest")
+LLM_URL = config.get("llm_url", "http://localhost:8080/v1/chat/completions")
+MODEL_NAME = config.get("model_name", "gpt-3.5-turbo")
 WHISPER_MODEL = config.get("whisper_model", "base")
 INPUT_DIR = config.get("input_dir", "./input")
 OUTPUT_DIR = config.get("output_dir", "./output")
 
 def summarize_text(text):
     """
-    Summarizes and highlights key points using the local Ollama LLM.
+    Summarizes and highlights key points using the local llama.cpp server.
     """
     payload = {
         "messages": [
@@ -25,17 +25,19 @@ def summarize_text(text):
     }
     
     try:
-        response = requests.post(OLLAMA_URL, json=payload)
+        response = requests.post(LLM_URL, json=payload)
         response.raise_for_status()
         
         if response.status_code == 200:
-            content = response.json().get("message", {}).get("content", "")
+            # Handle OpenAI-compatible response from llama.cpp server
+            data = response.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
             return content.strip()
         else:
             print(f"Failed to retrieve summary: {response.status_code}")
             return None
     except Exception as e:
-        print(f"Error calling Ollama API: {e}")
+        print(f"Error calling LLM API: {e}")
         return None
 
 def run_pipeline(input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, model_name=WHISPER_MODEL):
