@@ -1,6 +1,6 @@
 # Project Instructions: Transcribe and Summarize
 
-This project provides a comprehensive toolkit for batch transcribing audio files using OpenAI's Whisper model and summarizing those transcriptions using a local LLM via a llama.cpp server (OpenAI-compatible API). It includes a Flask-based web dashboard and a robust API for external integration.
+This project provides a comprehensive toolkit for batch transcribing audio files and summarizing those transcriptions using a local multimodal LLM via a llama.cpp server (OpenAI-compatible API). It includes a Flask-based web dashboard and a robust API for external integration.
 
 ## Project Overview
 
@@ -8,8 +8,7 @@ This project provides a comprehensive toolkit for batch transcribing audio files
 - **Main Technologies:**
     - **Python (Flask):** Backend API and UI server.
     - **JavaScript (Vanilla):** Frontend dashboard logic.
-    - **OpenAI Whisper:** Local transcription model.
-    - **llama.cpp server:** Local LLM API for text summarization.
+    - **llama.cpp server:** Local multimodal LLM API for transcription and text summarization.
     - **Docker & Docker Compose:** Containerization.
 
 ## Architecture & Workflow
@@ -23,7 +22,7 @@ The project is structured around several specialized components:
 - `transcribe_only.py`, `summarize_text.py`: Batch utility scripts.
 
 ### Concurrency Model
-To prevent resource exhaustion (Whisper is OOM-prone), all transcription tasks (UI and API) are routed through a **single-worker queue**. Jobs are processed sequentially in the order they are received.
+To prevent resource exhaustion, all transcription and summarization tasks are routed through a **single-worker queue**. Jobs are processed sequentially in the order they are received.
 
 ## Setup and Execution
 
@@ -53,14 +52,14 @@ To prevent resource exhaustion (Whisper is OOM-prone), all transcription tasks (
   ```bash
   python transcribe.py
   ```
+  *(Note: Supports command-line argument overrides `--input/-i`, `--output/-o`, `--llm-url/-u`, and `--model-name/-m` to bypass `transcribe_config.json` defaults and process single audio/video files or folders dynamically.)*
 
 ## Configuration
 
 Settings are managed in `transcribe_config.json`. Key parameters include:
 
 - `llm_url`: The OpenAI-compatible API endpoint (e.g., `http://localhost:8080/v1/chat/completions`).
-- `model_name`: The model name to pass in the request.
-- `whisper_model`: The size of the Whisper model (`tiny`, `base`, `small`, `medium`, `large`).
+- `model_name`: The multimodal model name to pass in the request.
 - `input_dir` & `output_dir`: Paths for source audio and generated summaries.
 
 ## Directory Structure
