@@ -1,7 +1,7 @@
 {
-  "llm_url": "http://host.docker.internal:8080/v1/chat/completions",
-  "model_name": "gpt-3.5-turbo",
-  "whisper_model": "base",
-  "input_dir": "./input",
-  "output_dir": "./output"
+  "llm_url": "http://localhost:11434/v1/chat/completions",
+  "model_name": "qwen3.5:9b",
+  "input_dir": "/Users/bstove/Downloads/recordings",
+  "output_dir": "/Users/bstove/iso42001_vault/00_Inbox/rough_notes",
+  "template_path": "/Users/bstove/local/projects/transcribe/templates"
 }

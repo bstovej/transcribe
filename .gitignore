@@ -19,12 +19,17 @@ Thumbs.db
 
 # Project Data
 # Ignore everything in these folders but keep the folders themselves
-input/*
+input/
 !input/.gitkeep
-output/*
+output/
 !output/.gitkeep
 archives/
-journal/*
+journal/
+graphify-out/
 
 # Environment / Config
 .env
+
+# System
+90_System/
+90_System/*

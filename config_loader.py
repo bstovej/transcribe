@@ -15,8 +15,7 @@ def load_config():
         print(f"Warning: Config file not found at {config_path}. Using default internal values.")
         return {
             "llm_url": "http://localhost:8080/v1/chat/completions",
-            "model_name": "gpt-3.5-turbo",
-            "whisper_model": "base",
+            "model_name": "gemma-4-12b",
             "input_dir": "./input",
             "output_dir": "./output"
         }
@@ -28,8 +27,7 @@ def load_config():
         print(f"Error loading config file: {e}. Using default internal values.")
         return {
             "llm_url": "http://localhost:8080/v1/chat/completions",
-            "model_name": "gpt-3.5-turbo",
-            "whisper_model": "base",
+            "model_name": "gemma-4-12b",
             "input_dir": "./input",
             "output_dir": "./output"
         }

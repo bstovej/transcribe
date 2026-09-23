@@ -108,7 +108,6 @@ def upload_file():
     job_id = job_manager.add_job(TYPE_SINGLE_API, {
         "file_path": file_path,
         "output_dir": config.get("output_dir"),
-        "whisper_model": config.get("whisper_model"),
         "summarize": True
     })
     

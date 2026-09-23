@@ -51,7 +51,7 @@ Because Whisper is highly resource-intensive, we cannot allow concurrent transcr
 
 ### Phase 6: Documentation & Docker Updates
 1.  Update `docker-compose.yml` to run the Flask app (`flask run --host=0.0.0.0 --port=8501`).
-2.  Update `README.md` and `GEMINI.md` to document the new architecture, queue behavior, and API endpoints.
+2.  Update `README.md` and `AGENTS.md` to document the new architecture, queue behavior, and API endpoints.
 
 ## Verification
 - **Concurrency Test:** Initiate a batch "Full Pipeline" task via the UI, then immediately upload a file via `/api/upload`. Verify that the upload succeeds instantly (returning a pending job ID) and that processing of the uploaded file only begins *after* the batch job completes.

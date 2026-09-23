@@ -18,8 +18,7 @@ COPY . .
 
 # Environment variables with default values
 ENV LLM_URL=http://host.docker.internal:8080/v1/chat/completions
-ENV MODEL_NAME=llama3.2:latest
-ENV WHISPER_MODEL=base
+ENV MODEL_NAME=gemma-4-12b
 
 # Define the default command to run transcribe.py
 # Users can override this to run other scripts

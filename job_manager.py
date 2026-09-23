@@ -74,13 +74,11 @@ class JobManager:
                     if job["type"] == TYPE_PIPELINE:
                         transcribe.run_pipeline(
                             params.get("input_dir"), 
-                            params.get("output_dir"), 
-                            params.get("whisper_model")
+                            params.get("output_dir")
                         )
                     elif job["type"] == TYPE_TRANSCRIBE:
                         transcribe_only.transcribe_files(
-                            params.get("input_dir"), 
-                            params.get("whisper_model")
+                            params.get("input_dir")
                         )
                     elif job["type"] == TYPE_SUMMARIZE:
                         summarize_text.process_transcriptions(
@@ -97,8 +95,7 @@ class JobManager:
                         result = api_processing.process_single_file(
                             params.get("file_path"),
                             params.get("output_dir"),
-                            params.get("whisper_model"),
-                            params.get("summarize", True)
+                            summarize=params.get("summarize", True)
                         )
                         job["result"] = result
                 

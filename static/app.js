@@ -11,7 +11,6 @@ async function loadConfig() {
     
     document.getElementById('llm_url').value = config.llm_url;
     document.getElementById('model_name').value = config.model_name;
-    document.getElementById('whisper_model').value = config.whisper_model;
     document.getElementById('input_dir').value = config.input_dir;
     document.getElementById('output_dir').value = config.output_dir;
 }
@@ -20,7 +19,6 @@ async function saveConfig() {
     const config = {
         llm_url: document.getElementById('llm_url').value,
         model_name: document.getElementById('model_name').value,
-        whisper_model: document.getElementById('whisper_model').value,
         input_dir: document.getElementById('input_dir').value,
         output_dir: document.getElementById('output_dir').value
     };

@@ -1,10 +1,9 @@
-import whisper
 import os
 from pathlib import Path
 from config_loader import config
 import transcribe
 
-def process_single_file(file_path, output_dir, whisper_model, summarize=True):
+def process_single_file(file_path, output_dir, summarize=True):
     """
     Transcribes and optionally summarizes a single file.
     """
@@ -16,12 +15,8 @@ def process_single_file(file_path, output_dir, whisper_model, summarize=True):
         print(f"File {file_path} does not exist.")
         return None
 
-    print(f"Loading Whisper model '{whisper_model}'...")
-    model = whisper.load_model(whisper_model)
-
-    print(f"Transcribing: {file_path.name}...")
-    result = model.transcribe(str(file_path))
-    transcribed_text = result["text"]
+    print(f"Transcribing: {file_path.name} via LLM API...")
+    transcribed_text = transcribe.transcribe_audio_via_llm(file_path)
 
     if not transcribed_text.strip():
         print("Transcription is empty.")
