@@ -28,6 +28,12 @@ To prevent resource exhaustion, all transcription and summarization tasks are ro
 
 ## Setup and Execution
 
+### Clone the Repository
+```bash
+git clone https://github.com/bstovej/transcribe.git
+cd transcribe
+```
+
 ### Configuration
 Initialize the configuration file from the provided sample:
 ```bash

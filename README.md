@@ -26,7 +26,13 @@ The easiest way to run the project is using Docker and Docker Compose. This ensu
     *   Ensure the server is accessible from Docker (default config uses `host.docker.internal`).
 4.  **Whisper Model Cache**: The script will download the Whisper model on first run and cache it locally at `~/.cache/whisper/openai/whisper-small` for offline use.
 
-### 1. Configuration
+### 1. Clone the Repository
+```bash
+git clone https://github.com/bstovej/transcribe.git
+cd transcribe
+```
+
+### 2. Configuration
 Create your configuration file by copying the sample config:
 ```bash
 cp sample_transcribe_config.json transcribe_config.json
@@ -48,7 +54,7 @@ Summaries prepend customizable YAML frontmatter rendered from the template speci
 
 Existing frontmatter headers are automatically stripped before prepending to prevent duplicate metadata.
 
-### 2. Build and Run the Web UI
+### 3. Build and Run the Web UI
 Launch the Flask dashboard to manage tasks visually:
 ```bash
 docker-compose build
@@ -56,14 +62,14 @@ docker-compose up ui
 ```
 **Security Note:** For your protection, the UI is bound to `127.0.0.1`. It is **only** accessible from your local machine at: **http://localhost:8501**
 
-### 3. API Integration
+### 4. API Integration
 The system exposes a REST API for external applications:
 - **Upload & Transcribe:** `POST http://<server-ip>:8501/api/upload` (multipart/form-data with `file`)
   - Returns `{"job_id": "<uuid>"}`
 - **Check Status:** `GET http://<server-ip>:8501/api/status/<job_id>`
   - Returns current processing status and results when completed.
 
-### 4. Run Specific Scripts via CLI
+### 5. Run Specific Scripts via CLI
 You can also run specific tasks directly from the terminal using Docker Compose:
 
 *   **Full Pipeline** (Whisper Transcribe → LLM Translate → LLM Summarize with Frontmatter):
@@ -92,19 +98,25 @@ If you prefer to run scripts directly on your host:
 4.  **FFmpeg** installed on your system (used for audio decoding).
 5.  **Local LLM Server**: **llama.cpp server** or **Ollama** running locally with an OpenAI-compatible endpoint enabled.
 
-### Installation
+### 1. Clone the Repository
+```bash
+git clone https://github.com/bstovej/transcribe.git
+cd transcribe
+```
+
+### 2. Installation
 ```bash
 pip install -r requirements.txt
 ```
 
-### Configuration
+### 3. Configuration
 Create and edit your configuration file:
 ```bash
 cp sample_transcribe_config.json transcribe_config.json
 ```
 Customize `input_dir`, `output_dir`, `llm_url`, `model_name`, and `template_path` to match your local paths and server configuration.
 
-### Usage
+### 4. Usage
 #### 1. Full Pipeline (`transcribe.py`)
 Transcribes audio using local Whisper, translates if needed via LLM, generates a structured markdown summary with YAML frontmatter, and archives the original audio file.
 
