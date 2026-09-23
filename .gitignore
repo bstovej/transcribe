@@ -18,6 +18,7 @@ transcribe.code-workspace
 Thumbs.db
 
 # Project Data
+transcribe_config.json
 # Ignore everything in these folders but keep the folders themselves
 input/
 !input/.gitkeep

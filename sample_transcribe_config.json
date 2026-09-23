@@ -1,0 +1,7 @@
+{
+  "llm_url": "http://localhost:11434/v1/chat/completions",
+  "model_name": "qwen3.5:9b",
+  "input_dir": "/path/to/recordings",
+  "output_dir": "/path/to/transcription/output",
+  "template_path": "/path/to/transcribe/templates"
+}

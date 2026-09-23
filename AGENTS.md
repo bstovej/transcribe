@@ -1,6 +1,6 @@
 # Project Instructions: Transcribe and Summarize
 
-This project provides a comprehensive toolkit for batch transcribing audio files and summarizing those transcriptions using a local multimodal LLM via a llama.cpp server (OpenAI-compatible API). It includes a Flask-based web dashboard and a robust API for external integration.
+This project provides a comprehensive toolkit for batch transcribing audio files and summarizing those transcriptions using local LLMs hosted via **llama.cpp server** or **Ollama** (OpenAI-compatible API). It includes a Flask-based web dashboard and a robust API for external integration.
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ This project provides a comprehensive toolkit for batch transcribing audio files
 - **Main Technologies:**
     - **Python (Flask):** Backend API and UI server.
     - **JavaScript (Vanilla):** Frontend dashboard logic.
-    - **llama.cpp server:** Local multimodal LLM API for transcription and text summarization.
+    - **Local LLM Engine (llama.cpp server or Ollama):** OpenAI-compatible API for text translation, summarization, enhancement, and multimodal audio transcription.
     - **Docker & Docker Compose:** Containerization.
 
 ## Architecture & Workflow
@@ -18,13 +18,36 @@ The project is structured around several specialized components:
 - `app.py`: Flask entry point.
 - `job_manager.py`: Centralized job queue and single-worker thread for resource management.
 - `api_processing.py`: Logic for processing single-file API requests.
-- `transcribe.py`: Full batch pipeline (Transcribe -> Summarize -> Archive).
-- `transcribe_only.py`, `summarize_text.py`: Batch utility scripts.
+- `transcribe.py`: Full pipeline: Local Whisper transcription (FFmpeg decoded) -> LLM Translation -> LLM Summarization with YAML frontmatter -> Archive original audio/video.
+- `transcribe_only.py`: Direct audio transcription using a multimodal LLM API (`input_audio` payload) -> Archive original media.
+- `summarize_text.py`: Batch or single-file summarization (`--action summarize`) and grammar/readability enhancement (`--action enhance`) of existing transcriptions with YAML frontmatter.
+- `config_loader.py`: Configuration loader with environment variable support (`TRANSCRIBE_CONFIG_PATH`).
 
 ### Concurrency Model
 To prevent resource exhaustion, all transcription and summarization tasks are routed through a **single-worker queue**. Jobs are processed sequentially in the order they are received.
 
 ## Setup and Execution
+
+### Configuration
+Initialize the configuration file from the provided sample:
+```bash
+cp sample_transcribe_config.json transcribe_config.json
+```
+Edit `transcribe_config.json` with local settings:
+- `llm_url`: The OpenAI-compatible API endpoint (e.g., `http://localhost:8080/v1/chat/completions` for llama.cpp server or `http://localhost:11434/v1/chat/completions` for Ollama).
+- `model_name`: The model identifier to pass in requests (e.g., `gemma-4-12b`, `qwen3.5:9b`).
+- `input_dir`: Path for source recordings.
+- `output_dir`: Path for generated Markdown summaries and enhancements.
+- `template_path`: Path to the YAML frontmatter template (defaults to `./templates/tp_header.md`).
+
+#### Frontmatter Templating
+Markdown summaries and enhancements render dynamic metadata from the template specified by `template_path`. Tokens supported:
+- `{{date}}` / `{{date:FORMAT}}`: Date stamp (e.g. `{{date:YYYY-MM-DD}}`).
+- `{{time}}` / `{{time:FORMAT}}`: Time stamp (e.g. `{{time:YYYY-MM-DDTHH:mm}}`).
+- `{{title}}`: Stem name of the processed file.
+- `{{source}}`: Original filename.
+
+Existing frontmatter blocks are stripped automatically to prevent duplicates.
 
 ### Using Docker (Recommended)
 - **Build and start the Web UI:**
@@ -48,26 +71,32 @@ To prevent resource exhaustion, all transcription and summarization tasks are ro
   ```bash
   python app.py
   ```
-- **Run Pipeline:**
-  ```bash
-  python transcribe.py
-  ```
-  *(Note: Supports command-line argument overrides `--input/-i`, `--output/-o`, `--llm-url/-u`, and `--model-name/-m` to bypass `transcribe_config.json` defaults and process single audio/video files or folders dynamically.)*
-
-## Configuration
-
-Settings are managed in `transcribe_config.json`. Key parameters include:
-
-- `llm_url`: The OpenAI-compatible API endpoint (e.g., `http://localhost:8080/v1/chat/completions`).
-- `model_name`: The multimodal model name to pass in the request.
-- `input_dir` & `output_dir`: Paths for source audio and generated summaries.
+- **CLI Script Execution:**
+  - **Full Pipeline (`transcribe.py`):**
+    ```bash
+    python transcribe.py [--input/-i PATH] [--output/-o PATH] [--llm-url/-u URL] [--model-name/-m MODEL] [--template/-t PATH]
+    ```
+    *Note: Supports processing single audio/video files or an entire folder.*
+  - **Summarize & Enhance (`summarize_text.py`):**
+    ```bash
+    python summarize_text.py [--action summarize|enhance] [--input/-i PATH] [--output/-o PATH] [--llm-url/-u URL] [--model-name/-m MODEL] [--template/-t PATH]
+    ```
+  - **Transcribe Only (`transcribe_only.py`):**
+    ```bash
+    python transcribe_only.py [--input/-i PATH] [--llm-url/-u URL] [--model-name/-m MODEL]
+    ```
 
 ## Directory Structure
 
+- `sample_transcribe_config.json`: Sample template for configuration.
+- `transcribe_config.json`: User-specific active configuration file (ignored by Git).
 - `input/`: Source audio/video files for processing.
     - `transcribed-audio/`: Archive of processed source files.
-    - `transcripts/`: (Optional/User managed) location for intermediate transcripts.
-- `output/`: Final Markdown summaries and enhanced text.
+- `output/`: Final Markdown summaries (`*-summarized.md`) and enhanced texts (`*-enhanced.md`).
+- `templates/`:
+    - `tp_header.md`: Default YAML frontmatter template.
+    - `index.html`: Dashboard template.
+- `static/`: Frontend styles and JavaScript.
 - `journal/`: Project-related notes and logs.
 
 ## Development Conventions
@@ -75,3 +104,4 @@ Settings are managed in `transcribe_config.json`. Key parameters include:
 - **Stateless Scripts:** Scripts are designed to be run independently or via the dashboard.
 - **Error Handling:** Transcription and API calls are wrapped in try-except blocks with logging to stdout.
 - **Dynamic Configuration:** Scripts reload configuration via `config_loader.py` which respects the `TRANSCRIBE_CONFIG_PATH` environment variable.
+

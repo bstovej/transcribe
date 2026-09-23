@@ -2,7 +2,7 @@
 
 This project provides a set of Python scripts for batch transcribing audio files and summarizing the transcriptions using:
 - **Whisper** for speech-to-text transcription (offline-capable, runs locally)
-- **llama.cpp server** for translation and summarization (OpenAI-compatible API, e.g. Gemma-4-12b)
+- **Local LLMs via llama.cpp server or Ollama** for translation, summarization, text enhancement, and multimodal transcription (OpenAI-compatible API, e.g. Gemma-4-12b, Qwen3.5, etc.)
 
 Now includes a **Docker-based environment** and a **Web Dashboard** for easier management.
 
@@ -20,18 +20,33 @@ The easiest way to run the project is using Docker and Docker Compose. This ensu
 ### Prerequisites
 1.  **Docker & Docker Compose** installed.
 2.  **Python + PyTorch + Transformers** installed on your host.
-3.  **llama.cpp server** running on your host machine with multimodal (audio) support.
-    *   Start the server with the OpenAI API enabled: `./llama-server -hf unsloth/gemma-4-12b-it-GGUF:UD-Q4_K_XL --port 8080`
+3.  **Local LLM server** running on your host machine with OpenAI-compatible API support:
+    *   **llama.cpp server**: e.g., `./llama-server -hf unsloth/gemma-4-12b-it-GGUF:UD-Q4_K_XL --port 8080` (requires multimodal audio support if running `transcribe_only.py`).
+    *   **Ollama**: e.g., `ollama run qwen3.5:9b` (OpenAI-compatible endpoint at `http://host.docker.internal:11434/v1/chat/completions` or `http://localhost:11434/v1/chat/completions`).
     *   Ensure the server is accessible from Docker (default config uses `host.docker.internal`).
-4.  **Whisper Model Cache**: The script will download Whisper model on first run and cache it locally at `~/.cache/whisper/openai/whisper-tiny` for offline use.
+4.  **Whisper Model Cache**: The script will download the Whisper model on first run and cache it locally at `~/.cache/whisper/openai/whisper-small` for offline use.
 
 ### 1. Configuration
-Settings are managed in `transcribe_config.json`. You can modify this file to change:
-*   `llm_url`: The OpenAI-compatible API endpoint for translation/summarization (e.g., `http://host.docker.internal:8080/v1/chat/completions`).
-*   `model_name`: The language model name (e.g., `gemma-4-12b`).
-*   `input_dir`: Source folder for audio files (default: `./input`).
-*   `output_dir`: Destination folder for transcriptions/summaries (default: `./output`).
-*   `whisper_model`: Optional - Whisper model to use (default: `openai/whisper-tiny`). Use `openai/whisper-base` or `openai/whisper-small` for better quality.
+Create your configuration file by copying the sample config:
+```bash
+cp sample_transcribe_config.json transcribe_config.json
+```
+
+Then update `transcribe_config.json` with your local settings:
+*   `llm_url`: The OpenAI-compatible API endpoint for translation/summarization or multimodal transcription (e.g., `http://host.docker.internal:8080/v1/chat/completions` or `http://localhost:11434/v1/chat/completions`).
+*   `model_name`: The language/multimodal model name (e.g., `gemma-4-12b` or `qwen3.5:9b`).
+*   `input_dir`: Path to source audio/video files (default: `./input`).
+*   `output_dir`: Path to destination folder for transcriptions and summaries (default: `./output`).
+*   `template_path`: Path to a Markdown template file for YAML frontmatter (default: `./templates/tp_header.md`).
+
+#### Frontmatter Templating
+Summaries prepend customizable YAML frontmatter rendered from the template specified by `template_path`. The template supports dynamic placeholder tokens:
+*   `{{date}}`: Current date (`YYYY-MM-DD` by default, or customized via `{{date:FORMAT}}` e.g. `{{date:YYYY/MM/DD}}`).
+*   `{{time}}`: Current time (`HH:mm` by default, or customized via `{{time:FORMAT}}` e.g. `{{time:YYYY-MM-DDTHH:mm}}`).
+*   `{{title}}`: Stem / base filename of the processed file.
+*   `{{source}}`: Full filename of the processed source file.
+
+Existing frontmatter headers are automatically stripped before prepending to prevent duplicate metadata.
 
 ### 2. Build and Run the Web UI
 Launch the Flask dashboard to manage tasks visually:
@@ -42,24 +57,24 @@ docker-compose up ui
 **Security Note:** For your protection, the UI is bound to `127.0.0.1`. It is **only** accessible from your local machine at: **http://localhost:8501**
 
 ### 3. API Integration
-The system now exposes a robust API for external applications:
+The system exposes a REST API for external applications:
 - **Upload & Transcribe:** `POST http://<server-ip>:8501/api/upload` (multipart/form-data with `file`)
   - Returns `{"job_id": "<uuid>"}`
 - **Check Status:** `GET http://<server-ip>:8501/api/status/<job_id>`
   - Returns current processing status and results when completed.
 
-### 3. Run Specific Scripts via CLI
+### 4. Run Specific Scripts via CLI
 You can also run specific tasks directly from the terminal using Docker Compose:
 
-*   **Full Pipeline** (Transcribe → Translate → Summarize):
+*   **Full Pipeline** (Whisper Transcribe → LLM Translate → LLM Summarize with Frontmatter):
     ```bash
     docker-compose run transcribe
     ```
-*   **Transcribe Only**:
+*   **Transcribe Only** (via multimodal LLM API):
     ```bash
     docker-compose run transcribe_only
     ```
-*   **Summarize Only** (for existing transcriptions):
+*   **Summarize / Enhance Only** (for existing transcriptions):
     ```bash
     docker-compose run summarize
     ```
@@ -74,43 +89,78 @@ If you prefer to run scripts directly on your host:
 1.  **Python 3.10+**
 2.  **PyTorch** with CUDA support (for faster processing): `pip install torch --index-url https://download.pytorch.org/whl/cu121`
 3.  **Transformers** library: `pip install transformers torch`
-4.  **FFmpeg** installed on your system.
-5.  **llama.cpp server** running locally.
+4.  **FFmpeg** installed on your system (used for audio decoding).
+5.  **Local LLM Server**: **llama.cpp server** or **Ollama** running locally with an OpenAI-compatible endpoint enabled.
 
 ### Installation
 ```bash
 pip install -r requirements.txt
 ```
 
+### Configuration
+Create and edit your configuration file:
+```bash
+cp sample_transcribe_config.json transcribe_config.json
+```
+Customize `input_dir`, `output_dir`, `llm_url`, `model_name`, and `template_path` to match your local paths and server configuration.
+
 ### Usage
-Run the pipeline using Python:
+#### 1. Full Pipeline (`transcribe.py`)
+Transcribes audio using local Whisper, translates if needed via LLM, generates a structured markdown summary with YAML frontmatter, and archives the original audio file.
+
 ```bash
 python transcribe.py
 ```
-By default, the script loads settings from `transcribe_config.json`.
 
-#### Overriding Configuration via CLI Arguments
-You can override configuration settings directly via command line arguments. This also enables processing a single audio/video file directly instead of an entire folder:
-
+Override configuration settings directly via CLI arguments, or pass a single file instead of a folder:
 ```bash
-python transcribe.py --input /path/to/audio_file.mp3 --output /path/to/output_dir --llm-url http://localhost:8080/v1/chat/completions --model-name my-custom-model
+python transcribe.py --input /path/to/recording.mp3 --output /path/to/output --llm-url http://localhost:8080/v1/chat/completions --model-name gemma-4-12b --template templates/tp_header.md
 ```
 
-**Available Options:**
-*   `-i`, `--input`: Input directory path or path to a single audio/video file (e.g. `.mp3`, `.m4a`, `.wav`, etc.).
-*   `-o`, `--output`: Output directory where Markdown summaries will be written.
-*   `-u`, `--llm-url`: OpenAI-compatible API endpoint URL for translation/summarization.
-*   `-m`, `--model-name`: Model name to supply in the LLM API payload.
+**Options for `transcribe.py`:**
+*   `-i`, `--input`: Input directory path or path to a single audio/video file (`.mp3`, `.m4a`, `.wav`, `.mp4`, `.mpeg`, `.mpga`, `.webm`).
+*   `-o`, `--output`: Destination directory for Markdown summaries.
+*   `-u`, `--llm-url`: OpenAI-compatible API endpoint URL for translation and summarization.
+*   `-m`, `--model-name`: Model name to supply in LLM API requests.
+*   `-t`, `--template`: Path to the YAML frontmatter template markdown file.
 
-The scripts will automatically fall back to settings from `transcribe_config.json` if arguments are omitted.
+#### 2. Summarize & Enhance Existing Transcripts (`summarize_text.py`)
+Processes existing `*-transcribed.txt` files (or a single transcription file) to summarize or enhance readability, prepending YAML frontmatter.
+
+```bash
+# Summarize transcriptions (default)
+python summarize_text.py --action summarize
+
+# Enhance grammar and readability
+python summarize_text.py --action enhance
+```
+
+**Options for `summarize_text.py`:**
+*   `--action`: `summarize` (default) or `enhance`.
+*   `-i`, `--input`: Input directory containing `*-transcribed.txt` files or path to a single text file.
+*   `-o`, `--output`: Output directory where summaries (`*-summarized.md`) or enhancements (`*-enhanced.md`) are written.
+*   `-u`, `--llm-url`: OpenAI-compatible API endpoint URL.
+*   `-m`, `--model-name`: LLM model name.
+*   `-t`, `--template`: Path to YAML frontmatter template.
+
+#### 3. Transcribe Only via Multimodal LLM (`transcribe_only.py`)
+Transcribes audio directly using a multimodal LLM endpoint (`input_audio` format), saving `*-transcribed.txt` alongside the source file and archiving the media file.
+
+```bash
+python transcribe_only.py --input /path/to/recording.mp3 --llm-url http://localhost:8080/v1/chat/completions --model-name qwen3.5:9b
+```
+
+**Options for `transcribe_only.py`:**
+*   `-i`, `--input`: Input directory or path to a single audio/video file.
+*   `-u`, `--llm-url`: Multimodal OpenAI-compatible API endpoint URL.
+*   `-m`, `--model-name`: Model name to supply in LLM API requests.
 
 ### Offline Mode
-The Whisper model is downloaded on the first run and cached at `~/.cache/whisper/`. To avoid any network round-trips or metadata checks to Hugging Face Hub (which can issue warnings or rate limits), the script loads directly using the local filesystem path. After the initial download, transcription is fully offline and requires no internet access.
+For `transcribe.py`, the Whisper model (`openai/whisper-small`) is downloaded on first run and cached locally at `~/.cache/whisper/openai/whisper-small`. Audio streams are decoded directly via FFmpeg into memory, bypassing standard demuxing issues with M4A/MP4 containers. After the initial model download, Whisper transcription operates completely offline.
 
 ### GPU Acceleration
-For faster transcription, install PyTorch with CUDA and ensure your GPU is recognized:
+For faster Whisper transcription, install PyTorch with CUDA support and verify your GPU device:
 ```python
-# Check device
 import torch
 print(torch.cuda.is_available())  # Should return True
 ```
@@ -118,19 +168,25 @@ print(torch.cuda.is_available())  # Should return True
 ---
 
 ## 📁 Project Structure
-- `input/`: Place your source audio files here.
-- `output/`: Generated transcriptions (`*-transcribed.txt`) and summaries (`*-summarized.md`).
-- `transcribe_config.json`: Central configuration file.
+- `sample_transcribe_config.json`: Template configuration file.
+- `transcribe_config.json`: Local active configuration (ignored by Git).
+- `input/`: Source audio/video files.
+  - `transcribed-audio/`: Archive of processed audio/video files.
+- `output/`: Final Markdown summaries (`*-summarized.md`) and enhanced transcripts (`*-enhanced.md`).
+- `templates/`: Templates directory, including `tp_header.md` (YAML frontmatter template) and `index.html` (Web UI).
+- `static/`: Frontend scripts (`app.js`) and styles (`style.css`).
 - `app.py`: Flask Web Dashboard & API Server.
 - `job_manager.py`: Manages the single-worker task queue.
 - `api_processing.py`: Handles single-file API transcription requests.
-- `transcribe.py`: Full pipeline: Transcribe (Whisper) → Translate → Summarize.
-- `transcribe_only.py`: Only performs Whisper transcription (batch).
-- `summarize_text.py`: Generates summaries from transcriptions (batch).
-- `templates/` & `static/`: Web UI components.
+- `transcribe.py`: Full pipeline: Local Whisper Transcribe → LLM Translate → LLM Summarize with Frontmatter.
+- `transcribe_only.py`: Multimodal LLM audio transcription utility.
+- `summarize_text.py`: Batch summarization and text enhancement with frontmatter templating.
+- `config_loader.py`: Central loader for configuration settings with fallback defaults.
 
 ## 🎯 Pipeline Overview
-1. **Transcribe**: Audio files → Whisper → Text (`*-transcribed.txt`)
-2. **Translate**: Text (if needed) → LLM → English text
-3. **Summarize**: English text → LLM → Markdown summary (`*-summarized.md`)
-4. **Archive**: Original files moved to `input/transcribed-audio/`
+1. **Transcribe**: Audio/video → Whisper (`transcribe.py`) or Multimodal LLM (`transcribe_only.py`) → Text (`*-transcribed.txt`)
+2. **Translate**: Text (if non-English) → LLM → English text
+3. **Summarize / Enhance**: English text → LLM → Structured Markdown summary (`*-summarized.md`) or enhanced text (`*-enhanced.md`)
+4. **Frontmatter Header**: Template variables (`{{date}}`, `{{time}}`, `{{title}}`, `{{source}}`) rendered and prepended to output
+5. **Archive**: Original audio/video files moved to `transcribed-audio/`
+

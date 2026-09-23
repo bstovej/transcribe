@@ -1,7 +1,0 @@
-{
-  "llm_url": "http://localhost:11434/v1/chat/completions",
-  "model_name": "qwen3.5:9b",
-  "input_dir": "/Users/bstove/Downloads/recordings",
-  "output_dir": "/Users/bstove/iso42001_vault/00_Inbox/rough_notes",
-  "template_path": "/Users/bstove/local/projects/transcribe/templates"
-}
